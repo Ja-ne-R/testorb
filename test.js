@@ -13,7 +13,40 @@ let fruitY = 0;
 let moveToLeft = false;
 let moveLeftSpeed = 0;
 let activeFruits = [];
+const loop = new Audio("loop.mp3");
+let obstacles = [];
+count = 0;
+max = 755;
+min = 600;
+function createObstacle() {
+    let getWidth = Math.floor((Math.random() * 200) + 1);
+    let getHeight = Math.floor((Math.random() * 100) + 1);
+    let getX = Math.floor(Math.random() * (max - min + 1) + min);
+    let getY = Math.floor((Math.random() * 200) + 1);
+    let randomColor = '#' + (Math.random().toString(16) + "000000").substring(2, 8);
+    obstacles.push({ getX, getY, getWidth, getHeight, randomColor });
+    // drawObstacles();
+}
+createObstacle();
+function drawObstacles() {
+    obstacles.forEach(obstacle => {
+        ctx.beginPath();
+        ctx.rect(obstacle.getX, obstacle.getY, obstacle.getWidth, obstacle.getHeight);
+        ctx.fillStyle = obstacle.randomColor;
+        ctx.fill();
+        ctx.closePath();
+    });
+}
 
+
+document.addEventListener("keydown", function() {
+    if (count == 0) {
+    loop.play();   
+    loop.loop = true; 
+    count++;    
+    }
+
+})
 // Define the maximum number of fruits allowed
 const MAX_FRUITS = 5; // You can change this number to your desired limit
 
@@ -147,7 +180,7 @@ class Main {
                 sound.play();
 
                 this.points += 1; // Assuming each fruit adds 1 point
-                if (moveLeftSpeed > -2.4) {
+                if (moveLeftSpeed > -3) {
                     moveLeftSpeed -= 0.2;
                     this.speedX = moveLeftSpeed;
                     moveToLeft = true;
@@ -219,6 +252,7 @@ function animate() {
 
     redrawLastDraws(); // Redraw the player's trail (and potentially clears the canvas)
     drawFood(); // Draw the food in its fixed position
+    drawObstacles();
     main1.update();
     requestAnimationFrame(animate);
 }
