@@ -14,39 +14,93 @@ let moveToLeft = false;
 let moveLeftSpeed = 0;
 let activeFruits = [];
 const loop = new Audio("loop.mp3");
-let obstacles = [];
+const GameState = {
+    START: 'start',
+    PLAYING: 'playing',
+    GAME_OVER: 'game_over'
+};
+
+let currentState = GameState.START;
+// let obstacles = [];
 count = 0;
 max = 755;
 min = 600;
-function createObstacle() {
-    let getWidth = Math.floor((Math.random() * 200) + 1);
-    let getHeight = Math.floor((Math.random() * 100) + 1);
-    let getX = Math.floor(Math.random() * (max - min + 1) + min);
-    let getY = Math.floor((Math.random() * 200) + 1);
-    let randomColor = '#' + (Math.random().toString(16) + "000000").substring(2, 8);
-    obstacles.push({ getX, getY, getWidth, getHeight, randomColor });
-    // drawObstacles();
-}
-createObstacle();
-function drawObstacles() {
-    obstacles.forEach(obstacle => {
-        ctx.beginPath();
-        ctx.rect(obstacle.getX, obstacle.getY, obstacle.getWidth, obstacle.getHeight);
-        ctx.fillStyle = obstacle.randomColor;
-        ctx.fill();
-        ctx.closePath();
-    });
-}
-
-
-document.addEventListener("keydown", function() {
-    if (count == 0) {
-    loop.play();   
-    loop.loop = true; 
-    count++;    
+// function createObstacle() {
+//     let getWidth = Math.floor((Math.random() * 200) + 1);
+//     let getHeight = Math.floor((Math.random() * 100) + 1);
+//     let getX = Math.floor(Math.random() * (max - min + 1) + min);
+//     let getY = Math.floor((Math.random() * 200) + 1);
+//     let randomColor = '#' + (Math.random().toString(16) + "000000").substring(2, 8);
+//     obstacles.push({ getX, getY, getWidth, getHeight, randomColor });
+//     // drawObstacles();
+// }
+// createObstacle();
+// function drawObstacles() {
+//     obstacles.forEach(obstacle => {
+//         ctx.beginPath();
+//         ctx.rect(obstacle.getX, obstacle.getY, obstacle.getWidth, obstacle.getHeight);
+//         ctx.fillStyle = obstacle.randomColor;
+//         ctx.fill();
+//         ctx.closePath();
+//     });
+// }
+class Obstacle {
+    constructor(name, width, height, x, y, value) {
+        this.name = name;
+        this.width = width;
+        this.height = height;
+        this.x = x;
+        this.y = y;
+        this.value = value;
     }
 
-})
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.rect(this.x, this.y, this.width, this.height);
+        ctx.fillStyle = this.value === 1 ? "grey" : "black"; // Differentiate based on value
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    checkCollision(player) {
+        
+        return player.x < this.x + this.width &&
+            player.x + player.w > this.x &&
+            player.y < this.y + this.height &&
+            player.y + player.h > this.y;
+    }
+}
+const obstacleList = {
+    top: [
+        new Obstacle("top0", 50, 100, 600, 10, 1),
+        new Obstacle("top1", 50, 160, 600, 0, 2),
+    ],
+    bottom: [
+        new Obstacle("bot0", 50, 100, 500, 120, 1),
+        new Obstacle("bot1", 70, 50, 570, 165, 1),
+    ]
+};
+let currentBottomObstacle = null
+function chooseObstacle() {
+
+    obstacleToDrawTop = obstacleList.top[Math.floor((Math.random() * obstacleList.top.length))]; 
+    ranObBot =  obstacleList.bottom[Math.floor((Math.random()* obstacleList.bottom.length))];
+    
+}
+chooseObstacle();
+function drawObstacle() {
+    obstacleList.top.forEach(obstacle => obstacle.draw(ctx));
+    obstacleList.bottom.forEach(obstacle => obstacle.draw(ctx));
+}
+
+// document.addEventListener("keydown", function() {
+//     if (count == 0) {
+//     loop.play();   
+//     loop.loop = true; 
+//     count++;    
+//     }
+
+// })
 // Define the maximum number of fruits allowed
 const MAX_FRUITS = 5; // You can change this number to your desired limit
 
@@ -82,20 +136,17 @@ function generateFoodItem() {
     }
 }
 
-// You might want to reconsider what this button does if you want the food to be fixed
 fruitbtn.addEventListener("click", function () {
     sound.currentTime = 0; 
     sound.play();
-    // If you still want the button to add new food, you can call generateFoodItem() here
-    // generateFoodItem();
-    // If you just want the sound, keep this part
+
 });
 
 
 
 let time; // Current time
 let prevTime = Date.now(); // Store previous time
-let isGrounded; // Check if player is on the ground
+let isGrounded; 
 lastDraws = [];
 class Main {
     constructor(x, y, w, h) {
@@ -107,7 +158,6 @@ class Main {
         this.speedX = moveLeftSpeed;
         this.speedY = 0;
         this.gravity = .01;
-        // this.gravitySpeed = 0; // This seems unused based on the update method
         this.jumpSpeed = -1.5; // How fast to jump upwards
         this.dx = 0;
         this.dy = 0;
@@ -123,23 +173,16 @@ class Main {
         ctx.closePath();
     }
 
-    // This function seems to be calculating gravitySpeed which is not used in update
     newPos() {
-        // this.gravitySpeed += this.gravity; // This line seems unnecessary
         this.x += this.speedX;
     }
 
     update() {
         coordsElem.innerHTML = "x " + this.x.toFixed() + " y " + this.y.toFixed() + " Grounded " + isGrounded + "<br>Points: " + this.points + "<br> " + moveLeftSpeed.toFixed(2);
-        // Calculate how much time has passed since last update
         time = Date.now();
         const deltaTime = time - prevTime;
 
-        // Update y-position based speed in y-direction
-        // If we jump this.speed will be set to this.jumpSpeed
-        this.y += this.speedY * deltaTime;
-        // Gravity should always affect the player!
-        // The ground check will make sure we don't fall through the floor
+            this.y += this.speedY * deltaTime;
         this.y += this.gravity * deltaTime;
         // Make sure to reduce our player's speed in y by gravity!
         this.speedY += this.gravity * deltaTime;
@@ -152,6 +195,16 @@ class Main {
         //boundaries
         if (this.x < this.boundaryStart) { this.x = this.boundaryStart };
         if (this.x + this.w > this.boundaryEnd) { this.x = this.boundaryEnd - this.w }
+
+        for (let i = 0; i < obstacleList.bottom.length; i++) {
+            const obstacle = obstacleList.bottom[i];
+            if (obstacle.checkCollision(this)) {
+                sound.currentTime = 0;
+                sound.play();
+                // Implement additional logic for when the player collides with an obstacle
+            }
+        }
+
 
         if (controller1.right) { this.dx += 0.5 };
         if (controller1.left) { this.dx -= 0.5 };
@@ -195,6 +248,30 @@ class Main {
             }
         }
 
+        // Iterate through the obstacles in obstaclelist.bottom
+        for (let i = 0; i < obstacleList.bottom.length; i++) {
+            const obstacle = obstacleList.bottom[i];
+
+
+
+            // Check for collision using bounding boxes
+            if (this.x < obstacle.obX + obstacle.obWidth &&
+                this.x + this.w > obstacle.obX &&
+                this.y < obstacle.obY + obstacle.obHeight &&
+                this.y + this.h > obstacle.obY) {
+
+            //     // Collision detected with this obstacle
+                sound.currentTime = 0;
+                sound.play();
+
+            //     // You might want to add additional logic here,
+            //     // like stopping the player, reducing health, etc.
+
+            //     // If you only need to detect collision once per obstacle,
+            //     // you could break or add a flag to the obstacle object.
+            }
+        }
+
 
         //store last draws
         lastDraws.push({ x: this.x, y: this.y, width: this.w, height: this.h, color: this.color });
@@ -211,6 +288,7 @@ class Main {
     }
 
 }
+
 function redrawLastDraws() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     lastDraws.forEach((draw, idx) => {
@@ -252,7 +330,8 @@ function animate() {
 
     redrawLastDraws(); // Redraw the player's trail (and potentially clears the canvas)
     drawFood(); // Draw the food in its fixed position
-    drawObstacles();
+    drawObstacle();
+    // createObstacle();
     main1.update();
     requestAnimationFrame(animate);
 }
