@@ -19,7 +19,7 @@ const GameState = {
     PLAYING: 'playing',
     GAME_OVER: 'game_over'
 };
-
+let activeObstacles = [];
 let currentState = GameState.START;
 // let obstacles = [];
 count = 0;
@@ -45,19 +45,20 @@ min = 600;
 //     });
 // }
 class Obstacle {
-    constructor(name, width, height, x, y, value) {
+    constructor(name, width, height, x, y, value, color) {
         this.name = name;
         this.width = width;
         this.height = height;
         this.x = x;
         this.y = y;
         this.value = value;
+        this.color = color;
     }
 
     draw(ctx) {
         ctx.beginPath();
         ctx.rect(this.x, this.y, this.width, this.height);
-        ctx.fillStyle = this.value === 1 ? "grey" : "black"; // Differentiate based on value
+        ctx.fillStyle = this.color;
         ctx.fill();
         ctx.closePath();
     }
@@ -69,30 +70,68 @@ class Obstacle {
             player.y < this.y + this.height &&
             player.y + player.h > this.y;
     }
+
+
+
+
 }
 const obstacleList = {
     top: [
-        new Obstacle("top0", 50, 100, 600, 10, 1),
-        new Obstacle("top1", 50, 160, 600, 0, 2),
+        new Obstacle("top0", 50, 100, 850, 10, 1),
+        new Obstacle("top1", 50, 160, 800, 0, 2),
     ],
     bottom: [
-        new Obstacle("bot0", 50, 100, 500, 120, 1),
-        new Obstacle("bot1", 70, 50, 570, 165, 1),
+        new Obstacle("bot0", 50, 100, 880, 160, 1),
+        new Obstacle("bot1", 70, 50, 800, 165, 1),
     ]
 };
 let currentBottomObstacle = null
 function chooseObstacle() {
 
-    obstacleToDrawTop = obstacleList.top[Math.floor((Math.random() * obstacleList.top.length))]; 
-    ranObBot =  obstacleList.bottom[Math.floor((Math.random()* obstacleList.bottom.length))];
-    
+   // Choose random obstacles
+    let newTopObstacle = obstacleList.top[Math.floor((Math.random() * obstacleList.top.length))];
+
+    let newBottomObstacle = obstacleList.bottom[Math.floor((Math.random() * obstacleList.bottom.length))];
+    let color = "#" + Math.floor(Math.random() * 16777215).toString(16);
+
+
+
+    activeObstacles.push(new Obstacle(newTopObstacle.name, newTopObstacle.width, newTopObstacle.height, newTopObstacle.x, newTopObstacle.y, newTopObstacle.value, color));
+    if (newTopObstacle.value != 2){
+    activeObstacles.push(new Obstacle(newBottomObstacle.name, newBottomObstacle.width, newBottomObstacle.height, newBottomObstacle.x, newBottomObstacle.y, newBottomObstacle.value, color));
+    }
+
 }
 chooseObstacle();
 function drawObstacle() {
-    obstacleList.top.forEach(obstacle => obstacle.draw(ctx));
-    obstacleList.bottom.forEach(obstacle => obstacle.draw(ctx));
+    activeObstacles.forEach(obstacle => {
+        // Use the obstacle's own draw method
+        obstacle.draw(ctx);
+    moveObstacle();
+    });
 }
 
+function moveObstacle() {
+    activeObstacles.forEach(obstacle => {
+        obstacle.x += moveLeftSpeed;
+    });
+}
+function removeOffScreenObstacles() {
+    activeObstacles = activeObstacles.filter(obstacle => obstacle.x + obstacle.width > boundaryStart);
+
+    if (activeObstacles.length == 0)
+    {
+
+            chooseObstacle();
+
+    }
+
+}
+
+// setTimeout(() => {
+//     chooseObstacle();
+//     console.log("obstacle chosen");
+// }, 2000);
 // document.addEventListener("keydown", function() {
 //     if (count == 0) {
 //     loop.play();   
@@ -164,6 +203,7 @@ class Main {
         this.boundaryStart = 0;
         this.boundaryEnd = 800;
         this.color = "black";
+        this.timerpoints = 0;
     }
     draw() {
         ctx.beginPath();
@@ -172,13 +212,18 @@ class Main {
         ctx.fill()
         ctx.closePath();
     }
+    pointTimer() {
+    if (this.points != 0) {
 
+        this.timerpoints += 1;
+    }
+}
     newPos() {
         this.x += this.speedX;
     }
 
     update() {
-        coordsElem.innerHTML = "x " + this.x.toFixed() + " y " + this.y.toFixed() + " Grounded " + isGrounded + "<br>Points: " + this.points + "<br> " + moveLeftSpeed.toFixed(2);
+        coordsElem.innerHTML = "x " + this.x.toFixed() + " y " + this.y.toFixed() + " Grounded " + isGrounded + "<br>Points: " + this.timerpoints + "<br> " + moveLeftSpeed.toFixed(2);
         time = Date.now();
         const deltaTime = time - prevTime;
 
@@ -196,14 +241,14 @@ class Main {
         if (this.x < this.boundaryStart) { this.x = this.boundaryStart };
         if (this.x + this.w > this.boundaryEnd) { this.x = this.boundaryEnd - this.w }
 
-        for (let i = 0; i < obstacleList.bottom.length; i++) {
-            const obstacle = obstacleList.bottom[i];
-            if (obstacle.checkCollision(this)) {
-                sound.currentTime = 0;
-                sound.play();
-                // Implement additional logic for when the player collides with an obstacle
-            }
-        }
+        // for (let i = 0; i < obstacleList.bottom.length; i++) {
+        //     const obstacle = obstacleList.bottom[i];
+        //     if (obstacle.checkCollision(this)) {
+        //         sound.currentTime = 0;
+        //         sound.play();
+        //         // Implement additional logic for when the player collides with an obstacle
+        //     }
+        // }
 
 
         if (controller1.right) { this.dx += 0.5 };
@@ -247,7 +292,47 @@ class Main {
                 break; // Stop checking for collisions after finding one
             }
         }
+        // check collision with obstacles - Iterate through activeObstacles for collision
+        for (let i = 0; i < activeObstacles.length; i++) {
+            const obstacle = activeObstacles[i];
+            if (obstacle.checkCollision(this)) {
+                // Determine the overlap on each axis
+                const overlapX = Math.min(this.x + this.w - obstacle.x, obstacle.x + obstacle.width - this.x);
+                const overlapY = Math.min(this.y + this.h - obstacle.y, obstacle.y + obstacle.height - this.y);
 
+                // Resolve the collision on the axis with the minimum overlap
+                if (overlapX < overlapY) {
+                    // Collision is primarily horizontal
+                    if (this.x + this.w > obstacle.x && this.x < obstacle.x) {
+                        // Collided from the left side of the obstacle
+                        this.x = obstacle.x - this.w;
+                    } else if (this.x < obstacle.x + obstacle.width && this.x + this.w > obstacle.x + obstacle.width) {
+                        // Collided from the right side of the obstacle
+                        this.x = obstacle.x + obstacle.width;
+                    }
+                    this.dx = 0; // Stop horizontal movement upon horizontal collision
+                } else {
+                    // Collision is primarily vertical
+                    if (this.y + this.h > obstacle.y && this.y < obstacle.y) {
+                        // Collided from above the obstacle (landing)
+                        this.y = obstacle.y - this.h;
+                        this.speedY = 0; // Stop falling speed
+                        isGrounded = true; // Consider grounded if landing on an obstacle
+                    } else if (this.y < obstacle.y + obstacle.height && this.y + this.h > obstacle.y + obstacle.height) {
+                        // Collided from below the obstacle
+                        this.y = obstacle.y + obstacle.height;
+                        this.speedY = 0; // Stop upward speed
+                    }
+                }
+
+                // Optionally play a sound effect on collision
+                // sound.currentTime = 0;
+                // sound.play();
+
+                // If you want a game over or other effect on collision, put it here.
+                // For now, we are just preventing movement through.
+            }
+        }
         // Iterate through the obstacles in obstaclelist.bottom
         for (let i = 0; i < obstacleList.bottom.length; i++) {
             const obstacle = obstacleList.bottom[i];
@@ -271,7 +356,8 @@ class Main {
             //     // you could break or add a flag to the obstacle object.
             }
         }
-
+        moveObstacle();
+        removeOffScreenObstacles();
 
         //store last draws
         lastDraws.push({ x: this.x, y: this.y, width: this.w, height: this.h, color: this.color });
@@ -288,6 +374,9 @@ class Main {
     }
 
 }
+
+
+
 
 function redrawLastDraws() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -332,6 +421,7 @@ function animate() {
     drawFood(); // Draw the food in its fixed position
     drawObstacle();
     // createObstacle();
+    main1.pointTimer();
     main1.update();
     requestAnimationFrame(animate);
 }
