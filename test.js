@@ -132,12 +132,12 @@ function removeOffScreenObstacles() {
 //     chooseObstacle();
 //     console.log("obstacle chosen");
 // }, 2000);
-// document.addEventListener("keydown", function() {
-//     if (count == 0) {
-//     loop.play();   
-//     loop.loop = true; 
-//     count++;    
-//     }
+document.addEventListener("keydown", function() {
+    if (count == 0) {
+    loop.play();   
+    loop.loop = true; 
+    count++;    
+    }
 
 // })
 // Define the maximum number of fruits allowed
