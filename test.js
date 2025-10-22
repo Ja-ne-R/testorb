@@ -139,7 +139,7 @@ document.addEventListener("keydown", function() {
     count++;    
     }
 
-// })
+})
 // Define the maximum number of fruits allowed
 const MAX_FRUITS = 5; // You can change this number to your desired limit
 
