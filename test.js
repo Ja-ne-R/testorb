@@ -5,7 +5,7 @@ const sound = new Audio("pop.mp3");
 const input = document.querySelector('input');
 const getThat = document.getElementById("getThat");
 const boundaryStart = 0;
-const boundaryEnd = 800;
+const boundaryEnd = 1000;
 const fruitbtn = document.getElementById("test");
 const coordsElem = document.getElementById("coords");
 let fruitX = 0;
@@ -25,25 +25,9 @@ let currentState = GameState.START;
 count = 0;
 max = 755;
 min = 600;
-// function createObstacle() {
-//     let getWidth = Math.floor((Math.random() * 200) + 1);
-//     let getHeight = Math.floor((Math.random() * 100) + 1);
-//     let getX = Math.floor(Math.random() * (max - min + 1) + min);
-//     let getY = Math.floor((Math.random() * 200) + 1);
-//     let randomColor = '#' + (Math.random().toString(16) + "000000").substring(2, 8);
-//     obstacles.push({ getX, getY, getWidth, getHeight, randomColor });
-//     // drawObstacles();
-// }
-// createObstacle();
-// function drawObstacles() {
-//     obstacles.forEach(obstacle => {
-//         ctx.beginPath();
-//         ctx.rect(obstacle.getX, obstacle.getY, obstacle.getWidth, obstacle.getHeight);
-//         ctx.fillStyle = obstacle.randomColor;
-//         ctx.fill();
-//         ctx.closePath();
-//     });
-// }
+
+
+
 class Obstacle {
     constructor(name, width, height, x, y, value, color) {
         this.name = name;
@@ -79,10 +63,15 @@ const obstacleList = {
     top: [
         new Obstacle("top0", 50, 100, 850, 10, 1),
         new Obstacle("top1", 50, 160, 800, 0, 2),
+        new Obstacle("top2", 0, 0, 880, 20, 1),
     ],
     bottom: [
         new Obstacle("bot0", 50, 100, 880, 160, 1),
         new Obstacle("bot1", 70, 50, 800, 165, 1),
+        new Obstacle("bot2", 50, 60, 800, 160, 1),
+    ],
+    constant: [
+        new Obstacle("level1", 1000, 20, 0, 200, 3),
     ]
 };
 let currentBottomObstacle = null
@@ -93,7 +82,11 @@ function chooseObstacle() {
 
     let newBottomObstacle = obstacleList.bottom[Math.floor((Math.random() * obstacleList.bottom.length))];
     let color = "#" + Math.floor(Math.random() * 16777215).toString(16);
-
+    if (activeObstacles.length != 1) {
+    obstacleList.constant.forEach(obstacle => {
+        activeObstacles.push(new Obstacle(obstacle.name, obstacle.width, obstacle.height, obstacle.x, obstacle.y, obstacle.value, "green"));
+    });
+    }
 
 
     activeObstacles.push(new Obstacle(newTopObstacle.name, newTopObstacle.width, newTopObstacle.height, newTopObstacle.x, newTopObstacle.y, newTopObstacle.value, color));
@@ -113,13 +106,15 @@ function drawObstacle() {
 
 function moveObstacle() {
     activeObstacles.forEach(obstacle => {
-        obstacle.x += moveLeftSpeed;
+        if (obstacle.value != 3){
+            obstacle.x += moveLeftSpeed;
+        }
     });
 }
 function removeOffScreenObstacles() {
     activeObstacles = activeObstacles.filter(obstacle => obstacle.x + obstacle.width > boundaryStart);
 
-    if (activeObstacles.length == 0)
+    if (activeObstacles.length == 1)
     {
 
             chooseObstacle();
@@ -128,30 +123,10 @@ function removeOffScreenObstacles() {
 
 }
 
-// setTimeout(() => {
-//     chooseObstacle();
-//     console.log("obstacle chosen");
-// }, 2000);
-document.addEventListener("keydown", function() {
-    if (count == 0) {
-    loop.play();   
-    loop.loop = true; 
-    count++;    
-    }
 
-})
-// Define the maximum number of fruits allowed
-const MAX_FRUITS = 5; // You can change this number to your desired limit
+const MAX_FRUITS = 5; 
 
-// function generateFood(){
-// fruitX = 185;
-// fruitY = 185;
-// }
-// document.onload = generateFood();
-
-// Function to draw all active fruits
 function drawFood() {
-    // The canvas is cleared by redrawLastDraws, so no need to clear here
 
     activeFruits.forEach(fruit => {
         ctx.beginPath();
@@ -162,16 +137,12 @@ function drawFood() {
     });
 }
 
-// Function to generate *one* food item initially (or when needed)
 function generateFoodItem() {
-    // Check if the number of fruits is less than the maximum allowed
     if (activeFruits.length < MAX_FRUITS) {
         let ranX = Math.random() * (canvas.width - 10);
-        let ranY = Math.random() * (180) + 20;
+        let ranY = Math.random() * (180) + 30;
         activeFruits.push({ x: ranX, y: ranY, width: 10, height: 10 });
-        // Optionally, update fruitX and fruitY here if you plan to use them for collision
-        // fruitX = ranX;
-        // fruitY = ranY;
+
     }
 }
 
@@ -201,7 +172,7 @@ class Main {
         this.dx = 0;
         this.dy = 0;
         this.boundaryStart = 0;
-        this.boundaryEnd = 800;
+        this.boundaryEnd = 1000;
         this.color = "black";
         this.timerpoints = 0;
     }
@@ -223,84 +194,40 @@ class Main {
     }
 
     update() {
-        coordsElem.innerHTML = "x " + this.x.toFixed() + " y " + this.y.toFixed() + " Grounded " + isGrounded + "<br>Points: " + this.timerpoints + "<br> " + moveLeftSpeed.toFixed(2);
+        coordsElem.innerHTML = "x " + this.x.toFixed() + " y " + this.y.toFixed() + " Grounded " + isGrounded + "<br>Points: " + this.timerpoints + "<br> " + moveLeftSpeed.toFixed(2) + "<br>" + "game state: " + currentState;
         time = Date.now();
         const deltaTime = time - prevTime;
 
-            this.y += this.speedY * deltaTime;
-        this.y += this.gravity * deltaTime;
-        // Make sure to reduce our player's speed in y by gravity!
-        this.speedY += this.gravity * deltaTime;
+        // 1. Assume not grounded at the start of the frame
+        isGrounded = false;
 
-        // Only allow the player to jump if he is on the ground
-        if (controller1.up && isGrounded) {
-            // Set the player y-speed to jump speed
-            this.speedY = this.jumpSpeed;
-        };
-        //boundaries
-        if (this.x < this.boundaryStart) { this.x = this.boundaryStart };
-        if (this.x + this.w > this.boundaryEnd) { this.x = this.boundaryEnd - this.w }
+        // 2. Calculate tentative new position based on physics and input
+        this.y += this.speedY * deltaTime;
+        this.speedY += this.gravity * deltaTime; // Apply gravity to vertical speed
 
-        // for (let i = 0; i < obstacleList.bottom.length; i++) {
-        //     const obstacle = obstacleList.bottom[i];
-        //     if (obstacle.checkCollision(this)) {
-        //         sound.currentTime = 0;
-        //         sound.play();
-        //         // Implement additional logic for when the player collides with an obstacle
-        //     }
-        // }
-
-
-        if (controller1.right) { this.dx += 0.5 };
-        if (controller1.left) { this.dx -= 0.5 };
-
+        // Apply horizontal movement from controller input and existing dx
+        if (controller1.right) { this.dx += 0.5; };
+        if (controller1.left) { this.dx -= 0.5; };
         this.x += this.dx;
-        // this.y += this.dy; // This seems unused
-        this.dx *= 0.9;
-        this.dy *= 0.9; // This seems unused
+        this.dx *= 0.9; // Apply friction/drag
 
-        // Ground check
+        // 3. Check for collision with fixed ground and resolve
         if (this.y >= canvas.height - 50) {
             this.y = canvas.height - 50;
-            isGrounded = true;
-        } else {
-            isGrounded = false;
+            this.speedY = 0;
+            isGrounded = true; // Player is grounded on the fixed ground
         }
 
-        // check collision - Iterate through activeFruits for collision
-        for (let i = 0; i < activeFruits.length; i++) {
-            const fruit = activeFruits[i];
-            if (this.x < fruit.x + fruit.width &&
-                this.x + this.w > fruit.x &&
-                this.y < fruit.y + fruit.height &&
-                this.y + this.h > fruit.y) {
-                sound.currentTime = 0;
-                sound.play();
 
-                this.points += 1; // Assuming each fruit adds 1 point
-                if (moveLeftSpeed > -3) {
-                    moveLeftSpeed -= 0.2;
-                    this.speedX = moveLeftSpeed;
-                    moveToLeft = true;
-                }
-
-                // Remove the collided fruit
-                activeFruits.splice(i, 1);
-                // Generate one new fruit after each fruit is eaten
-                generateFoodItem();
-                generateFoodItem();
-                break; // Stop checking for collisions after finding one
-            }
-        }
-        // check collision with obstacles - Iterate through activeObstacles for collision
+        // 4. Check for collision with obstacles and resolve
         for (let i = 0; i < activeObstacles.length; i++) {
             const obstacle = activeObstacles[i];
             if (obstacle.checkCollision(this)) {
-                // Determine the overlap on each axis
+                // Collision detected! Resolve the collision.
+
                 const overlapX = Math.min(this.x + this.w - obstacle.x, obstacle.x + obstacle.width - this.x);
                 const overlapY = Math.min(this.y + this.h - obstacle.y, obstacle.y + obstacle.height - this.y);
 
-                // Resolve the collision on the axis with the minimum overlap
                 if (overlapX < overlapY) {
                     // Collision is primarily horizontal
                     if (this.x + this.w > obstacle.x && this.x < obstacle.x) {
@@ -317,7 +244,7 @@ class Main {
                         // Collided from above the obstacle (landing)
                         this.y = obstacle.y - this.h;
                         this.speedY = 0; // Stop falling speed
-                        isGrounded = true; // Consider grounded if landing on an obstacle
+                        isGrounded = true; // Player is now grounded on the obstacle
                     } else if (this.y < obstacle.y + obstacle.height && this.y + this.h > obstacle.y + obstacle.height) {
                         // Collided from below the obstacle
                         this.y = obstacle.y + obstacle.height;
@@ -325,63 +252,83 @@ class Main {
                     }
                 }
 
-                // Optionally play a sound effect on collision
+                // Optional: play a sound effect on collision
                 // sound.currentTime = 0;
                 // sound.play();
-
-                // If you want a game over or other effect on collision, put it here.
-                // For now, we are just preventing movement through.
             }
         }
-        // Iterate through the obstacles in obstaclelist.bottom
-        for (let i = 0; i < obstacleList.bottom.length; i++) {
-            const obstacle = obstacleList.bottom[i];
+
+        // 5. Apply horizontal boundaries (apply after horizontal movement and collision resolution)
+        if (this.x < this.boundaryStart) {
+            this.x = this.boundaryStart;
+            if (this.dx < 0) { // Only affect negative velocity
+                this.dx = 0; // Or a small positive value to push them away
+            }
+        } else if (this.x + this.w > this.boundaryEnd) {
+            this.x = this.boundaryEnd - this.w;
+            if (this.dx > 0) { // Only affect positive velocity
+                this.dx = 0; // Or a small negative value
+            }
+        }
+        // 6. Check jump condition (now isGrounded is correctly set for this frame)
+        if (controller1.up && isGrounded) {
+            this.speedY = this.jumpSpeed;
+
+        };
 
 
-
-            // Check for collision using bounding boxes
-            if (this.x < obstacle.obX + obstacle.obWidth &&
-                this.x + this.w > obstacle.obX &&
-                this.y < obstacle.obY + obstacle.obHeight &&
-                this.y + this.h > obstacle.obY) {
-
-            //     // Collision detected with this obstacle
+        // ... (check collision with fruits - can be done after position is finalized) ...
+        for (let i = 0; i < activeFruits.length; i++) {
+            const fruit = activeFruits[i];
+            if (this.x < fruit.x + fruit.width &&
+                this.x + this.w > fruit.x &&
+                this.y < fruit.y + fruit.height &&
+                this.y + this.h > fruit.y) {
                 sound.currentTime = 0;
                 sound.play();
 
-            //     // You might want to add additional logic here,
-            //     // like stopping the player, reducing health, etc.
+                this.points += 1; // Assuming each fruit adds 1 point
+                if (moveLeftSpeed > -3) {
+                    moveLeftSpeed -= 0.1;
+                    this.speedX = moveLeftSpeed; // Update player's horizontal speed too
+                    moveToLeft = true;
+                }
 
-            //     // If you only need to detect collision once per obstacle,
-            //     // you could break or add a flag to the obstacle object.
+                // Remove the collided fruit
+                activeFruits.splice(i, 1);
+                // Generate one new fruit after each fruit is eaten
+                generateFoodItem();
+                generateFoodItem();
+                break; // Stop checking for collisions after finding one
             }
         }
-        moveObstacle();
-        removeOffScreenObstacles();
 
-        //store last draws
+        // 9. Store last draws (using the final position after all movement and collision resolution)
         lastDraws.push({ x: this.x, y: this.y, width: this.w, height: this.h, color: this.color });
-        // Limit the number of last draws based on points (adjust as needed)
-        if (lastDraws.length > this.points ) { // Example: Keep points + 5 last draws
+        if (lastDraws.length > this.points) { // Keep points + 5 last draws
             lastDraws.shift();
         }
 
 
-        this.draw();
+        removeOffScreenObstacles();
 
-        // Store the current time to use for calculation in next update
+
+        this.draw(); // Draw the player in their final position for the frame
+
         prevTime = Date.now();
     }
-
 }
 
 
 
 
 function redrawLastDraws() {
+
+    //change redraw color based on points
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     lastDraws.forEach((draw, idx) => {
-        ctx.fillStyle = idx === lastDraws.length - 1 ? 'black' : 'grey'; // Last box is black, rest are grey
+        ctx.fillStyle = color = `hsl(${(idx / lastDraws.length) * 360}, 100%, 50%)`;
         ctx.fillRect(draw.x, draw.y, draw.width, draw.height);
     });
 }
@@ -404,23 +351,23 @@ class Controller {
     }
 }
 
-let main1 = new Main(canvas.width / 2, canvas.height / 2, 50, 50)
+let main1 = new Main(20, 100, 50, 50)
 let controller1 = new Controller();
 
-// Generate the initial food items up to the limit
+
 
     generateFoodItem();
 
 
 
 function animate() {
-    // ctx.clearRect(0, 0, canvas.width, canvas.height); // This might be cleared by redrawLastDraws
 
 
     redrawLastDraws(); // Redraw the player's trail (and potentially clears the canvas)
     drawFood(); // Draw the food in its fixed position
     drawObstacle();
     // createObstacle();
+
     main1.pointTimer();
     main1.update();
     requestAnimationFrame(animate);
