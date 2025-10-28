@@ -1,4 +1,6 @@
 
+let fruitPoints = 0;
+testNum = 0;
 const canvas = document.getElementById('area');
 const ctx = canvas.getContext('2d');
 const sound = new Audio("pop.mp3");
@@ -62,7 +64,7 @@ class Obstacle {
 const obstacleList = {
     top: [
         new Obstacle("top0", 50, 100, 850, 10, 1),
-        new Obstacle("top1", 50, 160, 800, 0, 2),
+        new Obstacle("top1", 50, 160, 800, -10, 2),
         new Obstacle("top2", 0, 0, 880, 20, 1),
     ],
     bottom: [
@@ -71,7 +73,7 @@ const obstacleList = {
         new Obstacle("bot2", 50, 60, 800, 160, 1),
     ],
     constant: [
-        new Obstacle("level1", 1000, 20, 0, 200, 3),
+        new Obstacle("level1", 900, 20, 0, 200, 3),
     ]
 };
 let currentBottomObstacle = null
@@ -104,9 +106,11 @@ function drawObstacle() {
     });
 }
 
+
+
 function moveObstacle() {
     activeObstacles.forEach(obstacle => {
-        if (obstacle.value != 3){
+        if (obstacle.value != 3 && moveToLeft == true){
             obstacle.x += moveLeftSpeed;
         }
     });
@@ -186,16 +190,18 @@ class Main {
     pointTimer() {
     if (this.points != 0) {
 
-        this.timerpoints += 1;
+        this.timerpoints += 1;            
+        testNum = this.timerpoints / 20;
+
     }
 }
+
     newPos() {
         this.x += this.speedX;
     }
 
     update() {
-        coordsElem.innerHTML = "x " + this.x.toFixed() + " y " + this.y.toFixed() + " Grounded " + isGrounded + "<br>Points: " + this.timerpoints + "<br> " + moveLeftSpeed.toFixed(2) + "<br>" + "game state: " + currentState;
-        time = Date.now();
+        coordsElem.innerHTML = "x " + this.x.toFixed() + " y " + this.y.toFixed() + " Grounded " + isGrounded + "<br>Points: " + (Math.floor(testNum) + fruitPoints) + "<br> " + moveLeftSpeed.toFixed(2) + "<br>" + "game state: " + currentState;        time = Date.now();
         const deltaTime = time - prevTime;
 
         // 1. Assume not grounded at the start of the frame
@@ -212,8 +218,8 @@ class Main {
         this.dx *= 0.9; // Apply friction/drag
 
         // 3. Check for collision with fixed ground and resolve
-        if (this.y >= canvas.height - 50) {
-            this.y = canvas.height - 50;
+        if (this.y >= activeObstacles[0].y - 50) {
+            this.y = activeObstacles[0].y - 50;
             this.speedY = 0;
             isGrounded = true; // Player is grounded on the fixed ground
         }
@@ -286,12 +292,13 @@ class Main {
                 this.y + this.h > fruit.y) {
                 sound.currentTime = 0;
                 sound.play();
-
+                fruitPoints += 10;
                 this.points += 1; // Assuming each fruit adds 1 point
                 if (moveLeftSpeed > -3) {
                     moveLeftSpeed -= 0.1;
                     this.speedX = moveLeftSpeed; // Update player's horizontal speed too
                     moveToLeft = true;
+                    Object.moveLeftSpeed = moveLeftSpeed;
                 }
 
                 // Remove the collided fruit
@@ -318,9 +325,16 @@ class Main {
         prevTime = Date.now();
     }
 }
+let p = 100;
 
+// function checkTimerPoints() {
 
+//     if (main1.timerpoints == p) {
+//         chooseObstacle();
+//         p += 15;
+//     }
 
+// }
 
 function redrawLastDraws() {
 
@@ -362,13 +376,13 @@ let controller1 = new Controller();
 
 function animate() {
 
-
+    main1.pointTimer();
     redrawLastDraws(); // Redraw the player's trail (and potentially clears the canvas)
     drawFood(); // Draw the food in its fixed position
     drawObstacle();
     // createObstacle();
+    // checkTimerPoints();
 
-    main1.pointTimer();
     main1.update();
     requestAnimationFrame(animate);
 }
