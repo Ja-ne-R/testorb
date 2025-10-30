@@ -13,6 +13,7 @@ const coordsElem = document.getElementById("coords");
 let fruitX = 0;
 let fruitY = 0;
 let moveToLeft = false;
+let moveToLeftGround = false;
 let moveLeftSpeed = 0;
 let activeFruits = [];
 const loop = new Audio("loop.mp3");
@@ -21,6 +22,7 @@ const GameState = {
     PLAYING: 'playing',
     GAME_OVER: 'game_over'
 };
+let imp = 0;
 let activeObstacles = [];
 let currentState = GameState.START;
 // let obstacles = [];
@@ -65,7 +67,7 @@ const obstacleList = {
     top: [
         new Obstacle("top0", 50, 100, 850, 10, 1),
         new Obstacle("top1", 50, 160, 800, -10, 2),
-        new Obstacle("top2", 0, 0, 880, 20, 1),
+        new Obstacle("top2", 50, 90, 900, 10, 1),
     ],
     bottom: [
         new Obstacle("bot0", 50, 100, 880, 160, 1),
@@ -73,9 +75,12 @@ const obstacleList = {
         new Obstacle("bot2", 50, 60, 800, 160, 1),
     ],
     constant: [
-        new Obstacle("level1", 900, 20, 0, 200, 3),
+        new Obstacle("level1", 3000, 20, 0, 200, 2),
+        new Obstacle("level2", 1000, 20, 0, 500, 3),
     ]
 };
+
+let constantObstacleCount = obstacleList.constant.length;
 let currentBottomObstacle = null
 function chooseObstacle() {
 
@@ -84,7 +89,10 @@ function chooseObstacle() {
 
     let newBottomObstacle = obstacleList.bottom[Math.floor((Math.random() * obstacleList.bottom.length))];
     let color = "#" + Math.floor(Math.random() * 16777215).toString(16);
-    if (activeObstacles.length != 1) {
+   
+
+    if (imp == 0){
+    if (activeObstacles.length != 2) {
     obstacleList.constant.forEach(obstacle => {
         activeObstacles.push(new Obstacle(obstacle.name, obstacle.width, obstacle.height, obstacle.x, obstacle.y, obstacle.value, "green"));
     });
@@ -92,10 +100,10 @@ function chooseObstacle() {
 
 
     activeObstacles.push(new Obstacle(newTopObstacle.name, newTopObstacle.width, newTopObstacle.height, newTopObstacle.x, newTopObstacle.y, newTopObstacle.value, color));
-    if (newTopObstacle.value != 2){
+    if (newTopObstacle.value != constantObstacleCount){
     activeObstacles.push(new Obstacle(newBottomObstacle.name, newBottomObstacle.width, newBottomObstacle.height, newBottomObstacle.x, newBottomObstacle.y, newBottomObstacle.value, color));
     }
-
+    }
 }
 chooseObstacle();
 function drawObstacle() {
@@ -112,13 +120,17 @@ function moveObstacle() {
     activeObstacles.forEach(obstacle => {
         if (obstacle.value != 3 && moveToLeft == true){
             obstacle.x += moveLeftSpeed;
+
         }
+            if (activeObstacles[0].x + activeObstacles[0].width < 900){
+                activeObstacles[0].value = 3;
+            }
     });
 }
 function removeOffScreenObstacles() {
     activeObstacles = activeObstacles.filter(obstacle => obstacle.x + obstacle.width > boundaryStart);
 
-    if (activeObstacles.length == 1)
+    if (activeObstacles.length == 2)
     {
 
             chooseObstacle();
@@ -142,12 +154,14 @@ function drawFood() {
 }
 
 function generateFoodItem() {
+    if (imp == 0){
     if (activeFruits.length < MAX_FRUITS) {
         let ranX = Math.random() * (canvas.width - 10);
         let ranY = Math.random() * (180) + 30;
         activeFruits.push({ x: ranX, y: ranY, width: 10, height: 10 });
 
     }
+}
 }
 
 fruitbtn.addEventListener("click", function () {
@@ -200,6 +214,9 @@ class Main {
         this.x += this.speedX;
     }
 
+
+
+
     update() {
         coordsElem.innerHTML = "x " + this.x.toFixed() + " y " + this.y.toFixed() + " Grounded " + isGrounded + "<br>Points: " + (Math.floor(testNum) + fruitPoints) + "<br> " + moveLeftSpeed.toFixed(2) + "<br>" + "game state: " + currentState;        time = Date.now();
         const deltaTime = time - prevTime;
@@ -218,8 +235,8 @@ class Main {
         this.dx *= 0.9; // Apply friction/drag
 
         // 3. Check for collision with fixed ground and resolve
-        if (this.y >= activeObstacles[0].y - 50) {
-            this.y = activeObstacles[0].y - 50;
+        if (this.y >= this.boundaryEnd - 50) {
+            this.y = this.boundaryEnd - 50;
             this.speedY = 0;
             isGrounded = true; // Player is grounded on the fixed ground
         }
@@ -298,6 +315,7 @@ class Main {
                     moveLeftSpeed -= 0.1;
                     this.speedX = moveLeftSpeed; // Update player's horizontal speed too
                     moveToLeft = true;
+                    moveToLeftGround = true;
                     Object.moveLeftSpeed = moveLeftSpeed;
                 }
 
@@ -335,6 +353,71 @@ let p = 100;
 //     }
 
 // }
+
+
+function checkWhere() {
+    if (main1.x > 800 && main1.y > 200) {
+        imp = 1;
+    }
+
+    if (imp == 1) {
+        main1.speedX = 0;
+        callIt(); // call the function to change the map and remove fruits
+    }
+
+}
+let startW = 0;
+let maxW = 50;
+let startCount = 0;
+let stopCount = 200;
+let theCount = 0;
+
+function callIt(){
+    if (imp == 1){
+    activeObstacles[0].y -= 0.5;
+    activeFruits.length = 0;
+    }
+growIt();
+}
+
+function growIt(){
+
+if (theCount == 0){
+    main1.w++;
+    main1.h++;
+    startW++;
+}
+
+if (theCount == 1){
+    main1.w--;
+    main1.h--;
+    startW--;    
+}
+
+if (startCount == stopCount){
+    clearInterval(theInterval);
+    theCount = 3;
+}
+else if (startCount != stopCount){
+    startCount++;
+
+}
+
+
+}
+const theInterval = setInterval(int, 200);
+
+function int(){
+    if (theCount == 0){
+        theCount = 1
+    }
+    else {
+        theCount = 0;
+    }    
+}
+
+
+
 
 function redrawLastDraws() {
 
@@ -380,6 +463,7 @@ function animate() {
     redrawLastDraws(); // Redraw the player's trail (and potentially clears the canvas)
     drawFood(); // Draw the food in its fixed position
     drawObstacle();
+    checkWhere();
     // createObstacle();
     // checkTimerPoints();
 
